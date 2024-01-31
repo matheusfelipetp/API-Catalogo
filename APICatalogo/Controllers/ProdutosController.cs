@@ -16,67 +16,105 @@ public class ProdutosController : ControllerBase
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<Produto>> Get()
+    public async Task<ActionResult<IEnumerable<Produto>>> GetProdutos()
     {
-        var produtos = _context.Produtos.ToList();
-        if (produtos is null)
+        try
         {
-            return NotFound();
+            var produtos = await _context.Produtos.AsNoTracking().ToListAsync();
+
+            if (produtos is null)
+                return NotFound();
+
+            return produtos;
         }
-        return produtos;
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                "Ocorreu um problema ao tratar a sua solicitação.");
+        }
     }
 
     [HttpGet("{id:int}", Name = "ObterProduto")]
-    public ActionResult<Produto> Get(int id)
+    public async Task<ActionResult<Produto>> GetProduto(int id)
     {
-        var produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
-        if (produto is null)
+        try
         {
-            return NotFound("Produto não encontrado...");
+            var produto = await _context.Produtos.FirstOrDefaultAsync(p => p.ProdutoId == id);
+
+            if (produto is null)
+                return NotFound("Produto não encontrado...");
+
+
+            return produto;
         }
-        return produto;
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                "Ocorreu um problema ao tratar a sua solicitação.");
+        }
     }
 
     [HttpPost]
-    public ActionResult Post(Produto produto)
+    public async Task<ActionResult> PostProduto(Produto produto)
     {
-        if (produto is null)
-            return BadRequest();
+        try
+        {
+            if (produto is null)
+                return BadRequest();
 
-        _context.Produtos.Add(produto);
-        _context.SaveChanges();
+            await _context.Produtos.AddAsync(produto);
+            await _context.SaveChangesAsync();
 
-        return new CreatedAtRouteResult("ObterProduto",
-            new { id = produto.ProdutoId }, produto);
+            return new CreatedAtRouteResult("ObterProduto",
+                new { id = produto.ProdutoId }, produto);
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                "Ocorreu um problema ao tratar a sua solicitação.");
+        }  
     }
 
     [HttpPut("{id:int}")]
-    public ActionResult Put(int id, Produto produto)
+    public async Task<ActionResult> PutProduto(int id, Produto produto)
     {
-        if (id != produto.ProdutoId)
+        try
         {
-            return BadRequest();
+            if (id != produto.ProdutoId)
+                return BadRequest();
+
+
+            _context.Entry(produto).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(produto);
         }
-
-        _context.Entry(produto).State = EntityState.Modified;
-        _context.SaveChanges();
-
-        return Ok(produto);
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                "Ocorreu um problema ao tratar a sua solicitação.");
+        }
     }
 
     [HttpDelete("{id:int}")]
-    public ActionResult Delete(int id)
+    public async Task<ActionResult> DeleteProduto(int id)
     {
-        var produto = _context.Produtos.FirstOrDefault(p => p.ProdutoId == id);
-        //var produto = _context.Produtos.Find(id);
-
-        if (produto is null)
+        try
         {
-            return NotFound("Produto não localizado...");
-        }
-        _context.Produtos.Remove(produto);
-        _context.SaveChanges();
+            var produto = await _context.Produtos.FirstOrDefaultAsync(p => p.ProdutoId == id);
 
-        return Ok(produto);
+            if (produto is null)
+                return NotFound("Produto não localizado...");
+
+            _context.Produtos.Remove(produto);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                "Ocorreu um problema ao tratar a sua solicitação.");
+        }
     }
 }
